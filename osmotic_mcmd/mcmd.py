@@ -294,11 +294,7 @@ class MCMD():
                 if(switch < self.prob[0]/2):
 
                     new_pos = random_ads(self.pos_ads, self.rvecs)
-#                    if not self.overlap(np.append(self.pos, new_pos, axis=0)):
                     e_new = self.insertion(new_pos)
-#                    else:
-#                        self.Z_ads += 1
-#                        e_new = 10e5
 
                     exp_value = self.beta * (-e_new + e)
                     if(exp_value > 100):
@@ -318,7 +314,6 @@ class MCMD():
                         self.Z_ads -= 1
                     else:
                         e = e_new
-#                        print('Acc: ', e_new/kjmol)
 
                 elif(self.Z_ads > 0):
 
@@ -332,7 +327,6 @@ class MCMD():
 
                     # Reject monte carlo move
                     if np.random.rand() > acc:
-                        #print('reject delet')
                         self.pos = pos_init
                         if self.ads_ei:
                             self.sfac = sfac_init
@@ -341,7 +335,6 @@ class MCMD():
                         self.Z_ads += 1
                     else:
                         e = e_new
-#                        print('Del: ', e_new/kjmol)
 
             elif(switch < self.prob[1]):
 
@@ -377,7 +370,6 @@ class MCMD():
                         self.e_vdw = e_vdw_init
                     else:
                         e = e_new
-#                        print('Trans: ', e_new/kjmol)
 
             else:
 
@@ -396,8 +388,8 @@ class MCMD():
                 s = System(n, self.pos, ffatypes = ffa, rvecs=self.rvecs)
                 s.detect_bonds()
 
-                ff = ForceField.generate(s, self.ff_file, 
-                                            rcut=self.rcut, 
+                ff = ForceField.generate(s, self.ff_file,
+                                            rcut=self.rcut,
                                             alpha_scale=self.alpha_scale,
                                             gcut_scale=self.gcut_scale,
                                             tailcorrections=True)
@@ -459,9 +451,9 @@ class MCMD():
                             hooks.append(meta)
                         verlet = VerletIntegrator(ff_lammps, self.timestep, hooks=hooks, temp0=self.T)
 
-                e0_tot = verlet._compute_ekin() / kjmol + ff_lammps.compute() / kjmol
+                e0_tot = verlet._compute_ekin() + ff_lammps.compute()
                 verlet.run(600)
-                ef_tot = verlet._compute_ekin() / kjmol + ff_lammps.compute() / kjmol
+                ef_tot = verlet._compute_ekin() + ff_lammps.compute()
 
                 if not self.vol_constraint:
                     Vn = np.linalg.det(ff_lammps.system.cell.rvecs)
@@ -489,8 +481,7 @@ class MCMD():
                     self.rvecs_flat = self.rvecs.reshape(9)
                     self.V = np.linalg.det(self.rvecs)
                     if self.meta:
-                        q0s.append(self.V)            
-#                        print('q0s:', q0s)
+                        q0s.append(self.V)
                     if self.ads_ei:
                         self.sfac = Sfac(self.pos, self.N_frame, self.rvecs_flat, \
                                             self.charges, self.alpha, self.gcut)
