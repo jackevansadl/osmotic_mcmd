@@ -111,10 +111,10 @@ class Parse_data():
     # Keep lists of data for different numbers of adsorbates in memory for efficiency
     def parameter_list(self):
 
-        self.sigmas = np.append(self.sigmas_MOF, np.tile(self.sigmas_ads, 2000))
-        self.epsilons = np.append(self.epsilons_MOF, np.tile(self.epsilons_ads, 2000))
-        self.charges = np.append(self.charges_MOF, np.tile(self.charges_ads, 2000))
-        self.radii = np.append(self.radii_MOF, np.tile(self.radii_ads, 2000))
+        self.sigmas = np.append(self.sigmas_MOF, np.tile(self.sigmas_ads, 3000))
+        self.epsilons = np.append(self.epsilons_MOF, np.tile(self.epsilons_ads, 3000))
+        self.charges = np.append(self.charges_MOF, np.tile(self.charges_ads, 3000))
+        self.radii = np.append(self.radii_MOF, np.tile(self.radii_ads, 3000))
 
 
 
