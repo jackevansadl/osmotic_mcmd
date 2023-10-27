@@ -36,6 +36,7 @@ from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
+
 if rank==0:
     log.set_level(log.medium)
 else:
@@ -195,7 +196,7 @@ class MCMD():
         return deleted_coord, e_new
 
 
-    def write_traj(self, traj, symbols):
+    def write_traj_func(self, traj, symbols):
         if rank == 0:
             f = open('results/fixed_N_trajectory_%d.xyz'%self.fixed_N, 'w')
             for iframe, frame in enumerate(traj):
@@ -205,7 +206,7 @@ class MCMD():
             f.close()
 
 
-    def append_h5(self):
+    def append_h5(self, iteration):
 
         if rank == 0:
             datasets = {'cell':[], 'cons_err':[], 'econs':[], 'pos':[], 'press':[], 'ptens':[], 'temp':[], 'volume':[]}
@@ -214,7 +215,7 @@ class MCMD():
                 temp = 'results/temp_%d.h5'%self.fixed_N
                 previous = 'results/output_%d.h5'%self.fixed_N
             else:
-                temp = 'results/temp_%.8f.h5'%(self.P/bar)
+                temp = 'results/temp_%.8f_%i.h5'%(self.P/bar, iteration)
                 previous = 'results/output_%.8f.h5'%(self.P/bar)
 
             if os.path.exists(previous):
@@ -410,9 +411,11 @@ class MCMD():
 
                     if self.write_h5s:
                         if self.fixed_N:
-                            hdf5_writer = HDF5Writer(h5.File('results/temp_%d.h5'%self.fixed_N, mode='w'), step=101)
+                            h5file = h5.File('results/temp_%d.h5'%self.fixed_N, mode='w')
+                            hdf5_writer = HDF5Writer(h5file, step=101)
                         else:
-                            hdf5_writer = HDF5Writer(h5.File('results/temp_%.8f.h5'%(self.P/bar), mode='w'), step=101)
+                            h5file = h5.File('results/temp_%.8f_%i.h5'%(self.P/bar, iteration), mode='w')
+                            hdf5_writer = HDF5Writer(h5file, step=101)
 
        	       	ensemble_hook = NHCThermostat(temp=self.T, timecon=100*femtosecond, chainlength=3)
                 if self.barostat:
@@ -465,12 +468,16 @@ class MCMD():
                     exp_value = 0
                 acc = min(1, np.exp(exp_value))
 
+                if self.write_h5s:
+                    if rank == 0:
+                        h5file.close()
+
                 # Accept monte carlo move
                 if np.random.rand() < acc:
 
                     if self.write_h5s:
                         # Append MD data to previous data
-                        self.append_h5()
+                        self.append_h5(iteration)
 
                     # Rebuild data for MC
                     pos_total = ff_lammps.system.pos
@@ -550,7 +557,7 @@ class MCMD():
 
                 mol = Molecule.from_file('results/end_%d.xyz'%self.fixed_N)
                 symbols = mol.symbols
-                self.write_traj(traj, symbols)
+                self.write_traj_func(traj, symbols)
                 os.remove('results/end_%d.xyz'%self.fixed_N)
 
             if self.write_traj:
