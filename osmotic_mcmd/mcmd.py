@@ -45,7 +45,7 @@ else:
 
 
 class MCMD():
-    def __init__(self, system_file, adsorbate_file, ff_file, T, P, fugacity, MD_trial_fraction, rcut, fixed_N = None, write_h5s = False, barostat = True, vol_constraint = False, write_traj = False, meta = False, timestep = 0.5*femtosecond):
+    def __init__(self, system_file, adsorbate_file, ff_file, T, P, fugacity, MD_trial_fraction, rcut, fixed_N = None, write_h5s = False, barostat = True, vol_constraint = False, write_traj = False, meta = False, timestep = 0.5*femtosecond, MDsteps = 600):
 
         self.ff_file = ff_file
         self.T = T
@@ -95,6 +95,7 @@ class MCMD():
         self.write_traj = write_traj
         self.meta = meta
         self.timestep = timestep
+        self.MDsteps = MDsteps
 
         if rank == 0:
             if self.fixed_N:
@@ -455,7 +456,7 @@ class MCMD():
                         verlet = VerletIntegrator(ff_lammps, self.timestep, hooks=hooks, temp0=self.T)
 
                 e0_tot = verlet._compute_ekin() + ff_lammps.compute()
-                verlet.run(600)
+                verlet.run(self.MDsteps)
                 ef_tot = verlet._compute_ekin() + ff_lammps.compute()
 
                 if not self.vol_constraint:
@@ -474,7 +475,7 @@ class MCMD():
 
                 # Accept monte carlo move
                 if np.random.rand() < acc:
-
+                    print('MD accepted')
                     if self.write_h5s:
                         # Append MD data to previous data
                         self.append_h5(iteration)
@@ -503,7 +504,7 @@ class MCMD():
                     else:
                         e = 0
                 else:
-
+                    print('MD not accepted')
                     self.pos = pos_init
                     self.rvecs = rvecs_init
                     self.rvecs_flat = rvecs_flat_init
