@@ -475,7 +475,7 @@ class MCMD():
 
                 # Accept monte carlo move
                 if np.random.rand() < acc:
-                    print('MD accepted')
+                    print('MD accepted!')
                     if self.write_h5s:
                         # Append MD data to previous data
                         self.append_h5(iteration)
