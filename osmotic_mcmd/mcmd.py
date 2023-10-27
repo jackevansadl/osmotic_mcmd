@@ -36,6 +36,7 @@ from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
+
 if rank==0:
     log.set_level(log.medium)
 else:
@@ -44,7 +45,7 @@ else:
 
 
 class MCMD():
-    def __init__(self, system_file, adsorbate_file, ff_file, T, P, fugacity, MD_trial_fraction, rcut, fixed_N = None, write_h5s = False, barostat = True, vol_constraint = False, write_traj = False, meta = False, timestep = 0.5*femtosecond):
+    def __init__(self, system_file, adsorbate_file, ff_file, T, P, fugacity, MD_trial_fraction, rcut, fixed_N = None, write_h5s = False, barostat = True, vol_constraint = False, write_traj = False, meta = False, timestep = 0.5*femtosecond, MDsteps = 600):
 
         self.ff_file = ff_file
         self.T = T
@@ -94,6 +95,7 @@ class MCMD():
         self.write_traj = write_traj
         self.meta = meta
         self.timestep = timestep
+        self.MDsteps = MDsteps
 
         if rank == 0:
             if self.fixed_N:
@@ -195,7 +197,7 @@ class MCMD():
         return deleted_coord, e_new
 
 
-    def write_traj(self, traj, symbols):
+    def write_traj_func(self, traj, symbols):
         if rank == 0:
             f = open('results/fixed_N_trajectory_%d.xyz'%self.fixed_N, 'w')
             for iframe, frame in enumerate(traj):
@@ -205,7 +207,7 @@ class MCMD():
             f.close()
 
 
-    def append_h5(self):
+    def append_h5(self, iteration):
 
         if rank == 0:
             datasets = {'cell':[], 'cons_err':[], 'econs':[], 'pos':[], 'press':[], 'ptens':[], 'temp':[], 'volume':[]}
@@ -214,7 +216,7 @@ class MCMD():
                 temp = 'results/temp_%d.h5'%self.fixed_N
                 previous = 'results/output_%d.h5'%self.fixed_N
             else:
-                temp = 'results/temp_%.8f.h5'%(self.P/bar)
+                temp = 'results/temp_%.8f_%i.h5'%(self.P/bar, iteration)
                 previous = 'results/output_%.8f.h5'%(self.P/bar)
 
             if os.path.exists(previous):
@@ -410,9 +412,11 @@ class MCMD():
 
                     if self.write_h5s:
                         if self.fixed_N:
-                            hdf5_writer = HDF5Writer(h5.File('results/temp_%d.h5'%self.fixed_N, mode='w'), step=101)
+                            h5file = h5.File('results/temp_%d.h5'%self.fixed_N, mode='w')
+                            hdf5_writer = HDF5Writer(h5file, step=101)
                         else:
-                            hdf5_writer = HDF5Writer(h5.File('results/temp_%.8f.h5'%(self.P/bar), mode='w'), step=101)
+                            h5file = h5.File('results/temp_%.8f_%i.h5'%(self.P/bar, iteration), mode='w')
+                            hdf5_writer = HDF5Writer(h5file, step=101)
 
        	       	ensemble_hook = NHCThermostat(temp=self.T, timecon=100*femtosecond, chainlength=3)
                 if self.barostat:
@@ -452,7 +456,7 @@ class MCMD():
                         verlet = VerletIntegrator(ff_lammps, self.timestep, hooks=hooks, temp0=self.T)
 
                 e0_tot = verlet._compute_ekin() + ff_lammps.compute()
-                verlet.run(600)
+                verlet.run(self.MDsteps)
                 ef_tot = verlet._compute_ekin() + ff_lammps.compute()
 
                 if not self.vol_constraint:
@@ -465,12 +469,16 @@ class MCMD():
                     exp_value = 0
                 acc = min(1, np.exp(exp_value))
 
+                if self.write_h5s:
+                    if rank == 0:
+                        h5file.close()
+
                 # Accept monte carlo move
                 if np.random.rand() < acc:
-
+                    print('MD accepted')
                     if self.write_h5s:
                         # Append MD data to previous data
-                        self.append_h5()
+                        self.append_h5(iteration)
 
                     # Rebuild data for MC
                     pos_total = ff_lammps.system.pos
@@ -496,7 +504,7 @@ class MCMD():
                     else:
                         e = 0
                 else:
-
+                    print('MD not accepted')
                     self.pos = pos_init
                     self.rvecs = rvecs_init
                     self.rvecs_flat = rvecs_flat_init
@@ -550,7 +558,7 @@ class MCMD():
 
                 mol = Molecule.from_file('results/end_%d.xyz'%self.fixed_N)
                 symbols = mol.symbols
-                self.write_traj(traj, symbols)
+                self.write_traj_func(traj, symbols)
                 os.remove('results/end_%d.xyz'%self.fixed_N)
 
             if self.write_traj:
