@@ -572,13 +572,18 @@ class MCMD():
                 os.remove('results/end_%d.xyz'%self.fixed_N)
                        
             from yaff import System
-            n_ads = np.tile(self.data.numbers_ads, self.Z_ads)
-            s_adorbate = System(n_ads, self.pos[-self.Z_ads*len(self.data.numbers_ads):], ffatypes = np.tile(ffa_ads, self.Z_ads), rvecs=self.rvecs)
-            s_adorbate.detect_bonds()
-            s_adorbate.to_file('results/guests.chk')
-            s_mof = System(self.data.numbers_MOF, self.pos[:-self.Z_ads*len(self.data.numbers_ads)], ffatypes = ffa_MOF, rvecs=self.rvecs)
-            s_mof.detect_bonds()
-            s_mof.to_file('results/framework.chk')
+            if self.Z_ads > 0:
+                n_ads = np.tile(self.data.numbers_ads, self.Z_ads)
+                s_adorbate = System(n_ads, self.pos[-self.Z_ads*len(self.data.numbers_ads):], ffatypes = np.tile(ffa_ads, self.Z_ads), rvecs=self.rvecs)
+                s_adorbate.detect_bonds()
+                s_adorbate.to_file('results/guests.chk')
+                s_mof = System(self.data.numbers_MOF, self.pos[:-self.Z_ads*len(self.data.numbers_ads)], ffatypes = ffa_MOF, rvecs=self.rvecs)
+                s_mof.detect_bonds()
+                s_mof.to_file('results/framework.chk')
+            else:
+                s_mof = System(self.data.numbers_MOF, self.pos, ffatypes = ffa_MOF, rvecs=self.rvecs)
+                s_mof.detect_bonds()
+                s_mof.to_file('results/framework.chk')
                    
             if self.write_traj:
                 ftraj.close()
