@@ -570,7 +570,8 @@ class MCMD():
                 symbols = mol.symbols
                 self.write_traj_func(traj, symbols)
                 os.remove('results/end_%d.xyz'%self.fixed_N)
-
+                       
+            from yaff import System
             n_ads = np.tile(self.data.numbers_ads, self.Z_ads)
             s_adorbate = System(n_ads, self.pos[-self.Z_ads*len(self.data.numbers_ads):], ffatypes = np.tile(ffa_ads, self.Z_ads), rvecs=self.rvecs)
             s_adorbate.detect_bonds()
