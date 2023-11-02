@@ -292,13 +292,13 @@ class MCMD():
                    
             if initial is not None and iteration==0:
                 from yaff import System
-                    s_ads = System.from_file(initial)
-                    nr_ads_initial = len(s_ads.pos) / len(self.pos_ads)
-                    self.e_el_real = 0
-                    self.e_vdw = 0
-                        for p in np.split(s_ads.pos, int(nr_ads_initial)):
-                            e_new = self.insertion(p)
-                    e = e_new
+                s_ads = System.from_file(initial)
+                nr_ads_initial = len(s_ads.pos) / len(self.pos_ads)
+                self.e_el_real = 0
+                self.e_vdw = 0
+                for p in np.split(s_ads.pos, int(nr_ads_initial)):
+                    e_new = self.insertion(p)
+                e = e_new
                    
             # Insertion / deletion
             if(switch < self.prob[0] and not self.Z_ads == self.fixed_N):
