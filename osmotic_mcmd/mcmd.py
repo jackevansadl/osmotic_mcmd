@@ -251,7 +251,7 @@ class MCMD():
             f.close()
 
 
-    def run_GCMC(self, N_iterations, N_sample):
+    def run_GCMC(self, N_iterations, N_sample, initial = None):
 
         A = Acceptance()
 
@@ -289,7 +289,17 @@ class MCMD():
             e_vdw_init = self.e_vdw
             switch = np.random.rand()
             acc = 0
-
+                   
+            if initial is not None and iteration==0:
+                from yaff import System
+                s_ads = System.from_file(initial)
+                nr_ads_initial = len(s_ads.pos) / len(self.pos_ads)
+                self.e_el_real = 0
+                self.e_vdw = 0
+                for p in np.split(s_ads.pos, int(nr_ads_initial)):
+                    e_new = self.insertion(p)
+                e = e_new
+                   
             # Insertion / deletion
             if(switch < self.prob[0] and not self.Z_ads == self.fixed_N):
 
@@ -560,7 +570,21 @@ class MCMD():
                 symbols = mol.symbols
                 self.write_traj_func(traj, symbols)
                 os.remove('results/end_%d.xyz'%self.fixed_N)
-
+                       
+            from yaff import System
+            if self.Z_ads > 0:
+                n_ads = np.tile(self.data.numbers_ads, self.Z_ads)
+                s_adorbate = System(n_ads, self.pos[-self.Z_ads*len(self.data.numbers_ads):], ffatypes = np.tile(ffa_ads, self.Z_ads), rvecs=self.rvecs)
+                s_adorbate.detect_bonds()
+                s_adorbate.to_file('results/guests.chk')
+                s_mof = System(self.data.numbers_MOF, self.pos[:-self.Z_ads*len(self.data.numbers_ads)], ffatypes = ffa_MOF, rvecs=self.rvecs)
+                s_mof.detect_bonds()
+                s_mof.to_file('results/framework.chk')
+            else:
+                s_mof = System(self.data.numbers_MOF, self.pos, ffatypes = ffa_MOF, rvecs=self.rvecs)
+                s_mof.detect_bonds()
+                s_mof.to_file('results/framework.chk')
+                   
             if self.write_traj:
                 ftraj.close()
 
